@@ -13,7 +13,7 @@ using namespace std::chrono;
 
 //-----------------------------TO RESET THE ELEMENTS IN ARRAY-----------------------------
 void gennum(long int arr[], long size) {
-    for(long int i = 0; i < size; i++) arr[i] = size - i;
+    for(long int i = 0; i < size; i++) arr[i] = rand() % 500000 + 1;
 }
 
 void printMemoryUsage(const string& prefix) {
@@ -194,7 +194,8 @@ void testSort(void (*sortFunc)(long[], long), long arr[], long size, const strin
 }
 
 int main() {
-    const long size = 100000; // Adjust the array size as needed
+    srand(time(0)); // Seed the random number generator
+    const long size = 10000; // Adjust the array size as needed
     long* arr = new long[size];
 
     testSort(bubble, arr, size, "BUBBLE");
