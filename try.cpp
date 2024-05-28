@@ -1,40 +1,50 @@
-//-----------------------------INCLUDE LIBRARY-----------------------------
-#include<iostream>
-#include<cstdlib>
-#include<ctime>
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
 #include <sys/resource.h>
+#include <vector>
+#include <numeric>
+#include <chrono>
+#include <cstring>
 
 using namespace std;
+using namespace std::chrono;
+
 //-----------------------------TO RESET THE ELEMENTS IN ARRAY-----------------------------
-void gennum(long int arr[],long size) {
-    for(long int i=0;i<size;i++) arr[i] = size-i;
+void gennum(long int arr[], long size) {
+    for(long int i = 0; i < size; i++) arr[i] = size - i;
 }
 
-void printMemoryUsage() {
+void printMemoryUsage(const string& prefix) {
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
-    std::cout << "Memory usage: " << usage.ru_maxrss << " KB" << std::endl;
+    #if defined(__linux__)
+    cout << prefix << " Memory usage: " << usage.ru_maxrss << " KB" << endl;
+    #else
+    cout << prefix << " Memory usage: " << usage.ru_maxrss / 1024 << " KB" << endl; // For non-Linux systems
+    #endif
 }
 
 //-----------------------------Swap Function-----------------------------
-void swap(long int *a,long int *b) {
-    long int t=*a;
+void swap(long int *a, long int *b) {
+    long int t = *a;
     *a = *b;
     *b = t;
 }
+
 //-----------------------------BUBBLE SORT-----------------------------
-void bubble(long int arr[],long int size) {
-    for(long i=0;i<size;i++) {
-        for(long j=0;j<size-1;j++) {
-            if(arr[j] > arr[j+1]) {
-                swap(&arr[j],&arr[j+1]);
+void bubble(long int arr[], long int size) {
+    for(long i = 0; i < size; i++) {
+        for(long j = 0; j < size - 1; j++) {
+            if(arr[j] > arr[j + 1]) {
+                swap(&arr[j], &arr[j + 1]);
             }
         }
     }
 }
+
 //-----------------------------INSERTION SORT-----------------------------
-void insertionSort(long arr[], long n)
-{
+void insertionSort(long arr[], long n) {
     long int i, key, j;
     for (i = 1; i < n; i++) {
         key = arr[i];
@@ -46,29 +56,28 @@ void insertionSort(long arr[], long n)
         arr[j + 1] = key;
     }
 }
-//-----------------------------SELECTION SORT-----------------------------
-void selectionSort(long arr[], long n)
-{
-    long i, j, min_idx;
-    for (i = 0; i < n-1; i++)
-    {
-        min_idx = i;
-        for (j = i+1; j < n; j++)
-          if (arr[j] < arr[min_idx])
-            min_idx = j;
 
-           if(min_idx != i)
+//-----------------------------SELECTION SORT-----------------------------
+void selectionSort(long arr[], long n) {
+    long i, j, min_idx;
+    for (i = 0; i < n - 1; i++) {
+        min_idx = i;
+        for (j = i + 1; j < n; j++)
+            if (arr[j] < arr[min_idx])
+                min_idx = j;
+        if(min_idx != i)
             swap(&arr[min_idx], &arr[i]);
     }
 }
+
 //-----------------------------MERGE SORT-----------------------------
-void merge(long arr[], long l, long m, long r)
-{
+void merge(long arr[], long l, long m, long r) {
     long i, j, k;
     long n1 = m - l + 1;
     long n2 = r - m;
 
-    long L[n1], R[n2];
+    long* L = new long[n1];
+    long* R = new long[n2];
 
     for (i = 0; i < n1; i++)
         L[i] = arr[l + i];
@@ -82,8 +91,7 @@ void merge(long arr[], long l, long m, long r)
         if (L[i] <= R[j]) {
             arr[k] = L[i];
             i++;
-        }
-        else {
+        } else {
             arr[k] = R[j];
             j++;
         }
@@ -101,6 +109,9 @@ void merge(long arr[], long l, long m, long r)
         j++;
         k++;
     }
+
+    delete[] L;
+    delete[] R;
 }
 
 void mergeSort(long arr[], long l, long r) {
@@ -113,9 +124,14 @@ void mergeSort(long arr[], long l, long r) {
         merge(arr, l, m, r);
     }
 }
+
+// Wrapper function for mergeSort
+void mergeSortWrapper(long arr[], long n) {
+    mergeSort(arr, 0, n - 1);
+}
+
 //-----------------------------QUICK SORT-----------------------------
-int partition(long arr[], long low, long high)
-{
+int partition(long arr[], long low, long high) {
     long pivot = arr[high];
 
     long i = (low - 1);
@@ -130,74 +146,62 @@ int partition(long arr[], long low, long high)
     return (i + 1);
 }
 
-
-void quickSort(long arr[], long low, long high)
-{
+void quickSort(long arr[], long low, long high) {
     if (low < high) {
-
         long pi = partition(arr, low, high);
 
         quickSort(arr, low, pi - 1);
         quickSort(arr, pi + 1, high);
     }
 }
+
+// Wrapper function for quickSort
+void quickSortWrapper(long arr[], long n) {
+    quickSort(arr, 0, n - 1);
+}
+
 //-----------------------------PRINT ARRAY-----------------------------
-void printarr(long arr[],long size ) {
-    for(int i=0;i<size;i++) printf("%ld ",arr[i]);
+void printarr(long arr[], long size) {
+    for(long i = 0; i < size; i++) printf("%ld ", arr[i]);
     printf("\n");
 }
 
+void testSort(void (*sortFunc)(long[], long), long arr[], long size, const string& sortName) {
+    const int numTests = 5;
+    vector<long> memoryUsages;
+    vector<double> durations;
+
+    for (int i = 0; i < numTests; ++i) {
+        gennum(arr, size);
+
+        auto start = high_resolution_clock::now();
+        sortFunc(arr, size);
+        auto end = high_resolution_clock::now();
+
+        double duration = duration_cast<microseconds>(end - start).count() / 1e6;
+        durations.push_back(duration);
+
+        struct rusage usage;
+        getrusage(RUSAGE_SELF, &usage);
+        memoryUsages.push_back(usage.ru_maxrss);
+    }
+
+    double avgDuration = accumulate(durations.begin(), durations.end(), 0.0) / durations.size();
+    double avgMemoryUsage = accumulate(memoryUsages.begin(), memoryUsages.end(), 0.0) / memoryUsages.size();
+    cout << sortName << " Average Time: " << avgDuration << " seconds" << endl;
+    cout << sortName << " Average Memory usage: " << avgMemoryUsage << " KB" << endl;
+}
+
 int main() {
-    const long size = 10;
-    long arr[size];
+    const long size = 100000; // ขนาดของอาร์เรย์ที่ใหญ่ขึ้น
+    long* arr = new long[size];
 
+    testSort(bubble, arr, size, "BUBBLE");
+    testSort(insertionSort, arr, size, "INSERTION");
+    testSort(selectionSort, arr, size, "SELECTION");
+    testSort(mergeSortWrapper, arr, size, "MERGE");
+    testSort(quickSortWrapper, arr, size, "QUICK");
 
-    clock_t start,end;
-    double duration;
-
-    gennum(arr,size);
-    start = clock();
-    bubble(arr,size);
-    end = clock();
-    duration = double(end-start) / CLOCKS_PER_SEC;
-    cout << "BUBBLE : " << duration << " seconds" << endl;
-    printarr(arr,size);
-    printMemoryUsage();
-
-    gennum(arr,size);
-    start = clock();
-    insertionSort(arr,size);
-    end = clock();
-    duration = double(end-start) / CLOCKS_PER_SEC;
-    cout << "INSERTION : " << duration << " seconds" << endl;
-    printarr(arr,size);
-    printMemoryUsage();
-
-    gennum(arr,size);
-    start = clock();
-    selectionSort(arr,size);
-    end = clock();
-    duration = double(end-start) / CLOCKS_PER_SEC;
-    cout << "SELECTION : " << duration << " seconds" << endl;
-    printarr(arr,size);
-    printMemoryUsage();
-
-    gennum(arr,size);
-    start = clock();
-    mergeSort(arr, 0, size - 1);
-    end = clock();
-    duration = double(end-start) / CLOCKS_PER_SEC;
-    cout << "MERGE : " << duration << " seconds" << endl;
-    printarr(arr,size);
-    printMemoryUsage();
-
-    gennum(arr,size);
-    start = clock();
-    quickSort(arr, 0, size - 1);
-    end = clock();
-    duration = double(end-start) / CLOCKS_PER_SEC;
-    cout << "QUICK : " << duration << " seconds" << endl;
-    printarr(arr,size);
-    printMemoryUsage();
-
+    delete[] arr;
+    return 0;
 }
