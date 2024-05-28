@@ -1,11 +1,12 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <windows.h>
+#include <psapi.h>
 #include <vector>
 #include <numeric>
 #include <chrono>
-#include <windows.h>
-#include <psapi.h>
+#include <cstring>
 
 using namespace std;
 using namespace std::chrono;
@@ -181,8 +182,9 @@ void testSort(void (*sortFunc)(long[], long), long arr[], long size, const strin
         durations.push_back(duration);
 
         PROCESS_MEMORY_COUNTERS pmc;
-        GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-        memoryUsages.push_back(pmc.WorkingSetSize / 1024); // Convert to KB
+        if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+            memoryUsages.push_back(pmc.WorkingSetSize / 1024); // Convert to KB
+        }
     }
 
     double avgDuration = accumulate(durations.begin(), durations.end(), 0.0) / durations.size();
