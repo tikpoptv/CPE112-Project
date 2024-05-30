@@ -5,6 +5,7 @@
 #include <vector>
 #include <numeric>
 #include <chrono>
+#include <stack>
 #include <cstring>
 
 using namespace std;
@@ -26,14 +27,14 @@ void printMemoryUsage(const string& prefix) {
 }
 
 //-----------------------------Swap Function-----------------------------
-void swap(long int *a, long int *b) {
-    long int t = *a;
+void swap(long *a, long *b) {
+    long t = *a;
     *a = *b;
     *b = t;
 }
 
 //-----------------------------BUBBLE SORT-----------------------------
-void bubble(long int arr[], long int size) {
+void bubble(long arr[], long size) {
     for(long i = 0; i < size; i++) {
         for(long j = 0; j < size - 1; j++) {
             if(arr[j] > arr[j + 1]) {
@@ -45,7 +46,7 @@ void bubble(long int arr[], long int size) {
 
 //-----------------------------INSERTION SORT-----------------------------
 void insertionSort(long arr[], long n) {
-    long int i, key, j;
+    long i, key, j;
     for (i = 1; i < n; i++) {
         key = arr[i];
         j = i - 1;
@@ -116,7 +117,7 @@ void merge(long arr[], long l, long m, long r) {
 
 void mergeSort(long arr[], long l, long r) {
     if (l < r) {
-        int m = l + (r - l) / 2;
+        long m = l + (r - l) / 2;
 
         mergeSort(arr, l, m);
         mergeSort(arr, m + 1, r);
@@ -131,12 +132,10 @@ void mergeSortWrapper(long arr[], long n) {
 }
 
 //-----------------------------QUICK SORT-----------------------------
-int partition(long arr[], long low, long high) {
+long partition(long arr[], long low, long high) {
     long pivot = arr[high];
-
     long i = (low - 1);
-
-    for (long j = low; j <= high; j++) {
+    for (long j = low; j <= high - 1; j++) {
         if (arr[j] < pivot) {
             i++;
             swap(&arr[i], &arr[j]);
@@ -147,11 +146,24 @@ int partition(long arr[], long low, long high) {
 }
 
 void quickSort(long arr[], long low, long high) {
-    if (low < high) {
-        long pi = partition(arr, low, high);
+    stack<pair<long, long> > stack;
+    stack.push(make_pair(low, high));
 
-        quickSort(arr, low, pi - 1);
-        quickSort(arr, pi + 1, high);
+    while (!stack.empty()) {
+        pair<long, long> p = stack.top();
+        stack.pop();
+        low = p.first;
+        high = p.second;
+
+        if (low < high) {
+            long pi = partition(arr, low, high);
+            if (pi - 1 > low) {
+                stack.push(make_pair(low, pi - 1));
+            }
+            if (pi + 1 < high) {
+                stack.push(make_pair(pi + 1, high));
+            }
+        }
     }
 }
 
@@ -167,7 +179,7 @@ void printarr(long arr[], long size) {
 }
 
 void testSort(void (*sortFunc)(long[], long), long arr[], long size, const string& sortName) {
-    const int numTests = 5;
+    const int numTests = 10;
     vector<long> memoryUsages;
     vector<double> durations;
 
@@ -193,15 +205,18 @@ void testSort(void (*sortFunc)(long[], long), long arr[], long size, const strin
 }
 
 int main() {
-    const long size = 100000; // ขนาดของอาร์เรย์ที่ใหญ่ขึ้น
-    long* arr = new long[size];
+    const long size = 200000; // ขนาดของอาร์เรย์ที่ใหญ่ขึ้น
+    long* arr = (long*)malloc(size * sizeof(long));
 
     testSort(bubble, arr, size, "BUBBLE");
     testSort(insertionSort, arr, size, "INSERTION");
     testSort(selectionSort, arr, size, "SELECTION");
     testSort(mergeSortWrapper, arr, size, "MERGE");
+    if (arr == NULL) {
+        printf("Memory allocation failed!\n");
+        return 1;
+    }
     testSort(quickSortWrapper, arr, size, "QUICK");
-
     delete[] arr;
     return 0;
 }
